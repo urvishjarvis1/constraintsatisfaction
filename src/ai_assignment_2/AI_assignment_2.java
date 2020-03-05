@@ -6,7 +6,6 @@
 package ai_assignment_2;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -28,10 +27,10 @@ public class AI_assignment_2 {
         ai_assignment=new AI_assignment_2();
         Scanner scanner=new Scanner(System.in);
         
-        System.out.println("Enter number of variable (under 1000)");
+        System.out.println("Enter number of variable (under 100)");
         ai_assignment.numberOfVar=scanner.nextInt();
         while (ai_assignment.numberOfVar>100){
-            System.out.println("Pleas enter number of variable (under 1000)");
+            System.out.println("Pleas enter number of variable (under 100)");
             ai_assignment.numberOfVar=scanner.nextInt();
         }
         
@@ -78,12 +77,14 @@ public class AI_assignment_2 {
             ai_assignment.domains.add(i);
             System.out.print(" "+ai_assignment.domains.get(i)+",");
         }
-        ai_assignment.constaintVariable=new ArrayList<Constraints>();
+        
+        
         //constraint generation
-        System.out.println("\nConstraints");
+        ai_assignment.constaintVariable=new ArrayList<Constraints>();
         ai_assignment.generateConstraints();
         
         //printing constraints
+        System.out.println("\nConstraints:");
         ai_assignment.printConstrains();
         
         
@@ -91,7 +92,7 @@ public class AI_assignment_2 {
 
     private void generateConstraints() {
         Random randomGen=new Random();
-        int i=0,j=0;
+        int i=0,j;
         while (i < noOfConstraint) {
             int a = randomGen.nextInt(numberOfVar);
             int b = randomGen.nextInt(numberOfVar);
@@ -106,15 +107,13 @@ public class AI_assignment_2 {
                         int c = randomGen.nextInt(domainSize);
                         int d = randomGen.nextInt(domainSize);
                         //System.out.println("values a and b" + a + " " + b);
-                        if (c != d) {
-                            dup = checkforDuplicationForVal(c, d,constraints);
-                            //System.out.println("duplication for val:" + dup);
-                            if(!dup){
-                                constraints.values.add(new Values(c, d));
-                                j++;
-                               //System.out.println(" j:" + j);
-                            }
-                        }
+                        dup = checkforDuplicationForVal(c, d, constraints);
+                        //System.out.println("duplication for val:" + dup);
+                        if (!dup) {
+                            constraints.values.add(new Values(c, d));
+                            j++;
+                            //System.out.println(" j:" + j);
+                        } 
                     }
                     constaintVariable.add(constraints);
                     i++;
