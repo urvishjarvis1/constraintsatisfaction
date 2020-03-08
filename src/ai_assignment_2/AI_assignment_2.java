@@ -6,6 +6,7 @@
 package ai_assignment_2;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -19,6 +20,8 @@ public class AI_assignment_2 {
     ArrayList<Integer> variables=new ArrayList <Integer>();
     ArrayList<Integer> domains=new ArrayList <Integer>();
     ArrayList<Constraints> constaintVariable;
+    Domains varDomains=new Domains();
+    
     /**
      * @param args the command line arguments
      */
@@ -78,6 +81,11 @@ public class AI_assignment_2 {
             System.out.print(" "+ai_assignment.domains.get(i)+",");
         }
         
+        //assigning domains to each variables
+        for(int i=0;i<ai_assignment.variables.size();i++){
+            System.out.println("here");
+             ai_assignment.varDomains.values.add(new ArrayList<>(ai_assignment.domains));
+        }
         
         //constraint generation
         ai_assignment.constaintVariable=new ArrayList<Constraints>();
@@ -88,8 +96,115 @@ public class AI_assignment_2 {
         ai_assignment.printConstrains();
         
         
+        System.out.println("Are you want to run Arc Constitency before the sreach?y/n");
+        char choice=scanner.next().charAt(0);
+        if(choice=='y'){
+            //performing arc consistency 
+            boolean consistant = ai_assignment.performAC3();
+            System.out.println("Problem is consistent "+consistant+" Using Arc consistency");
+
+            for(int i=0;i<ai_assignment.varDomains.values.size();i++){
+                System.out.print("\nvar X"+i+": {");
+                for(int j=0;j<ai_assignment.varDomains.values.get(i).size();j++){
+                    System.out.print(ai_assignment.varDomains.values.get(i).get(j)+",");
+                }
+                System.out.print("}");
+            }
+        }
+        
+        System.out.println("Please select on the method to find a solution from the problem");
+        System.out.println("1. BackTracking ");
+        System.out.println("2. Forward Checking ");
+        System.out.println("3. Full Look Ahead ");
+        int choiceOfAlgo=scanner.nextInt();
+        
+       switch(choiceOfAlgo){
+           case 1:
+               doBacktracking();
+               break;
+           case 2:
+               doForwardChecking();
+               break;
+           case 3:
+               doFullLookAhead();
+               break;
+           default:
+               break;
+       }
+        
+    }
+    /**
+     * Arc Consistency
+     * @return false->domain is empty for one variable
+     *          true-> arc-consistent.
+     */
+    private boolean performAC3() {
+        List<Constraints> arcs=new ArrayList<Constraints>();
+                
+        arcs=constaintVariable;
+        int i=0;
+        while(i<arcs.size()){
+            Constraints constraint=arcs.get(i);
+            System.out.println("constaint("+constraint.var1+","+constraint.var2+")");
+            if(doArcReduce(constraint)){
+                if(varDomains.values.get(constraint.var1).isEmpty())
+                     return false;
+                else{
+                    
+                }
+            }
+            i++;
+        }
+        
+        return true;
+        
+    }
+    
+    /**
+     * to reduce the domain of the variable.
+     * @param constraint = for which we are performing arc consistency
+     * @return true-> if the removal of the value from the domain;
+     *         false-> if there is no removal
+     */
+    private boolean doArcReduce(Constraints constraint) {
+        int count=0;
+        for(Integer i:varDomains.values.get(constraint.var1)){
+           //do some great stuff here.
+           System.out.println("i: "+i);
+           for(int j=0;j<constraint.values.size();j++){
+               System.out.println("j: "+j+"value: "+constraint.values.get(j).val1);
+               if(i==constraint.values.get(j).val1)
+                   count++;
+               System.out.println("count"+count);
+           }
+           if(count==domainSize){
+               System.out.println("count same remvoing:"+varDomains.values.get(constraint.var1).get(i)+" form "+varDomains.values.get(constraint.var1)+" "+constraint.var1);
+               varDomains.values.get(constraint.var1).remove(i);
+               return true;
+           }
+           count=0;
+           
+        }
+        return false;
+    }
+    
+    
+    private static void doBacktracking() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    private static void doForwardChecking() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private static void doFullLookAhead() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    /**'
+     * for generation of constraint variable, generating two random constraints, a and b.
+     * checking duplicity and based on that generating incompatible tuples from the domain.
+     */
     private void generateConstraints() {
         Random randomGen=new Random();
         int i=0,j;
@@ -97,6 +212,7 @@ public class AI_assignment_2 {
             int a = randomGen.nextInt(numberOfVar);
             int b = randomGen.nextInt(numberOfVar);
             //System.out.println("var a and b" + a + " " + b);
+            //checking if the same variable is not generated
             if (a != b) {
                 boolean dup = checkforDuplicationForVariable(a, b);
                // System.out.println("duplication:" + dup);
@@ -123,7 +239,11 @@ public class AI_assignment_2 {
 
         }
     }
-
+    
+    
+    /**
+     * printing constraints of the problem 
+     */
     private void printConstrains() {
         for (Constraints c : constaintVariable){
             System.out.print("\n("+c.var1+","+c.var2+") :");
@@ -132,7 +252,14 @@ public class AI_assignment_2 {
             }
         }
     }
-
+    /**
+     * Function for checking duplicity in side the stored value such that same
+     * constraint variable will not appear for multiple times.
+     * @param a = randomly generated variable
+     * @param b = randomly generated variable
+     * @return -> true -> there's duplicity
+     *            false-> there's no duplicity
+     */
     private boolean checkforDuplicationForVariable(int a, int b) {
         //System.out.println("checking a and b"+a+ " "+b);
         //System.out.println("length"+constaintVariable.size());
@@ -149,7 +276,15 @@ public class AI_assignment_2 {
         }
         return false;
     }
-
+    /**
+     * Function for checking duplicity in side the stored value such that same
+     * incompatible tuple will not appear for multiple times.
+     * @param a = randomly generated value
+     * @param b = randomly generated value
+     * @param constraints = constraint object for which we are producing incompatible tuple
+     * @return -> true -> there's duplicity
+     *            false-> there's no duplicity
+     */
     private boolean checkforDuplicationForVal(int a, int b, Constraints constraints) {
         //System.out.println("checking a and b"+a+ " "+b);
         //System.out.println("length"+constaintVariable.size());
@@ -166,7 +301,10 @@ public class AI_assignment_2 {
         }
         return false;
     }
-    
+
+    /**
+     * Class for storing constraints i.e. incompatible 
+     */
     class Constraints{
         int var1,var2;
         ArrayList<Values> values=new ArrayList<Values>();
@@ -177,7 +315,9 @@ public class AI_assignment_2 {
         }
         
     }
-    
+    /**
+     * Class for storing incompatible tuples (constraints) value
+     */
     class Values{
         int val1,val2;
 
@@ -186,4 +326,11 @@ public class AI_assignment_2 {
             this.val2=b;
         }
     }
+    /**
+     * Class for storing values of variables
+     */
+    class Domains{
+         ArrayList<ArrayList<Integer>> values=new ArrayList<ArrayList<Integer>>(variables.size());
+    }
+    
 }
