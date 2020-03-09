@@ -6,6 +6,7 @@
 package ai_assignment_2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -47,14 +48,14 @@ public class AI_assignment_2 {
         System.out.println("Enter constant α (0<α<1)");
         ai_assignment.alpha=scanner.nextFloat();
         while(ai_assignment.alpha>=1f||ai_assignment.alpha<=0f){
-            System.out.println("Please enter constraint tightness (0<p<1)");
+            System.out.println("Please enter constant α (0<α<1)");
             ai_assignment.alpha=scanner.nextFloat();
         }
         
         System.out.println("Enter constant r (0<r<1)");
         ai_assignment.r=scanner.nextFloat();
         while(ai_assignment.r>=1f||ai_assignment.r<=0f){
-            System.out.println("Please enter constraint tightness (0<p<1)");
+            System.out.println("Please enter constant r(0<r<1)");
             ai_assignment.r=scanner.nextFloat();
         }
         
@@ -84,7 +85,7 @@ public class AI_assignment_2 {
         //assigning domains to each variables
         for(int i=0;i<ai_assignment.variables.size();i++){
             System.out.println("here");
-             ai_assignment.varDomains.values.add(new ArrayList<>(ai_assignment.domains));
+             ai_assignment.varDomains.values.add(new ArrayList<Integer>(ai_assignment.domains));
         }
         
         //constraint generation
@@ -96,12 +97,12 @@ public class AI_assignment_2 {
         ai_assignment.printConstrains();
         
         
-        System.out.println("Are you want to run Arc Constitency before the sreach?y/n");
+        System.out.println("\nAre you want to run Arc Constitency before the sreach?y/n");
         char choice=scanner.next().charAt(0);
         if(choice=='y'){
             //performing arc consistency 
             boolean consistant = ai_assignment.performAC3();
-            System.out.println("Problem is consistent "+consistant+" Using Arc consistency");
+            System.out.println("\nProblem is consistent "+consistant+" Using Arc consistency");
 
             for(int i=0;i<ai_assignment.varDomains.values.size();i++){
                 System.out.print("\nvar X"+i+": {");
@@ -112,7 +113,7 @@ public class AI_assignment_2 {
             }
         }
         
-        System.out.println("Please select on the method to find a solution from the problem");
+        System.out.println("\nPlease select on the method to find a solution from the problem");
         System.out.println("1. BackTracking ");
         System.out.println("2. Forward Checking ");
         System.out.println("3. Full Look Ahead ");
@@ -120,13 +121,13 @@ public class AI_assignment_2 {
         
        switch(choiceOfAlgo){
            case 1:
-               doBacktracking();
+               ai_assignment.doBacktracking();
                break;
            case 2:
-               doForwardChecking();
+               ai_assignment.doForwardChecking();
                break;
            case 3:
-               doFullLookAhead();
+               ai_assignment.doFullLookAhead();
                break;
            default:
                break;
@@ -137,6 +138,8 @@ public class AI_assignment_2 {
      * Arc Consistency
      * @return false->domain is empty for one variable
      *          true-> arc-consistent.
+     * 
+     * followed https://en.wikipedia.org/wiki/AC-3_algorithm site to get understanding of the algorithm
      */
     private boolean performAC3() {
         List<Constraints> arcs=new ArrayList<Constraints>();
@@ -149,9 +152,6 @@ public class AI_assignment_2 {
             if(doArcReduce(constraint)){
                 if(varDomains.values.get(constraint.var1).isEmpty())
                      return false;
-                else{
-                    
-                }
             }
             i++;
         }
@@ -178,7 +178,7 @@ public class AI_assignment_2 {
                System.out.println("count"+count);
            }
            if(count==domainSize){
-               System.out.println("count same remvoing:"+varDomains.values.get(constraint.var1).get(i)+" form "+varDomains.values.get(constraint.var1)+" "+constraint.var1);
+               //System.out.println("count same remvoing:"+varDomains.values.get(constraint.var1).get(i)+" form "+varDomains.values.get(constraint.var1)+" "+constraint.var1);
                varDomains.values.get(constraint.var1).remove(i);
                return true;
            }
@@ -189,16 +189,55 @@ public class AI_assignment_2 {
     }
     
     
-    private static void doBacktracking() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private void doBacktracking() {
+        HashMap<Integer,Integer> resultSet=new HashMap<Integer,Integer>();
+        boolean constaintViolated=false;
+        System.out.println("size of vardomain"+varDomains.values.size());
+        for(int variables1:variables){
+            System.out.println(" var 1:"+variables1);
+            for (int value1 = 0; value1 < varDomains.values.get(variables1).size(); value1++) {
+                for (int variable = variables1; variable < varDomains.values.size(); variable++) {
+                    for (int value = value1; value < varDomains.values.get(variables1).size(); value++) {
+                        System.out.println("variable " + variable + " value " + value);
+                        constaintViolated = constraintsViolated(variable, value, resultSet);
+                        System.out.println("Constrained:" + constaintViolated);
+                        if (!constaintViolated) {
+                            resultSet.put(variable, varDomains.values.get(variable).get(value));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("Solution:");
+        for(Integer variables:resultSet.keySet()){
+            System.out.println("variable X"+variables+": "+resultSet.get(variables));
+        }
+    }
+    
+    
+    private boolean constraintsViolated(int variable1, Integer value,HashMap<Integer,Integer> solutionSet) {
+        for(Integer variable2:solutionSet.keySet()){
+            for(Constraints constraint:constaintVariable){
+                System.out.println("var 1:"+variable1+" var 2:"+variable2+" val1:"+value+" val2:"+solutionSet.get(variable2));
+                if((constraint.var1==variable1&&constraint.var2==variable2)||(constraint.var1==variable2&&constraint.var2==variable1)){
+                    for (Values values : constraint.values) {
+                        if((values.val1==value&&values.val2==solutionSet.get(variable2))||(values.val2==value&&values.val1==solutionSet.get(variable2))){
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
-    private static void doForwardChecking() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private void doForwardChecking() {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
-    private static void doFullLookAhead() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private void doFullLookAhead() {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
     
     /**'
@@ -301,6 +340,8 @@ public class AI_assignment_2 {
         }
         return false;
     }
+
+    
 
     /**
      * Class for storing constraints i.e. incompatible 
