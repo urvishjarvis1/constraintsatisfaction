@@ -192,22 +192,28 @@ public class AI_assignment_2 {
     private void doBacktracking() {
         HashMap<Integer,Integer> resultSet=new HashMap<Integer,Integer>();
         boolean constaintViolated=false;
-        System.out.println("size of vardomain"+varDomains.values.size());
+        //System.out.println("size of vardomain"+varDomains.values.size());
         for(int variables1:variables){
             System.out.println(" var 1:"+variables1);
             for (int value1 = 0; value1 < varDomains.values.get(variables1).size(); value1++) {
                 for (int variable = variables1; variable < varDomains.values.size(); variable++) {
                     for (int value = value1; value < varDomains.values.get(variables1).size(); value++) {
-                        System.out.println("variable " + variable + " value " + value);
+                        //System.out.println("variable " + variable + " value " + value);
                         constaintViolated = constraintsViolated(variable, value, resultSet);
-                        System.out.println("Constrained:" + constaintViolated);
+                        //System.out.println("Constrained:" + constaintViolated);
                         if (!constaintViolated) {
                             resultSet.put(variable, varDomains.values.get(variable).get(value));
+                            //System.out.println("Variable X"+variable+":"+varDomains.values.get(variable).get(value));
                             break;
                         }
                     }
                 }
             }
+        }
+        if(resultSet.size()==numberOfVar){
+            System.out.println("Successfully found Solutions.");
+        }else{
+            System.out.println("Not able to find whole solution.");
         }
         System.out.println("Solution:");
         for(Integer variables:resultSet.keySet()){
@@ -219,7 +225,7 @@ public class AI_assignment_2 {
     private boolean constraintsViolated(int variable1, Integer value,HashMap<Integer,Integer> solutionSet) {
         for(Integer variable2:solutionSet.keySet()){
             for(Constraints constraint:constaintVariable){
-                System.out.println("var 1:"+variable1+" var 2:"+variable2+" val1:"+value+" val2:"+solutionSet.get(variable2));
+                //System.out.println("var 1:"+variable1+" var 2:"+variable2+" val1:"+value+" val2:"+solutionSet.get(variable2));
                 if((constraint.var1==variable1&&constraint.var2==variable2)||(constraint.var1==variable2&&constraint.var2==variable1)){
                     for (Values values : constraint.values) {
                         if((values.val1==value&&values.val2==solutionSet.get(variable2))||(values.val2==value&&values.val1==solutionSet.get(variable2))){
