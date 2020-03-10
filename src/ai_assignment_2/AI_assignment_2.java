@@ -7,7 +7,6 @@ package ai_assignment_2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -22,19 +21,21 @@ public class AI_assignment_2 {
     ArrayList<Integer> domains=new ArrayList <Integer>();
     ArrayList<Constraints> constaintVariable;
     Domains varDomains=new Domains();
+    long startTime=0,endTime=0;
     
     /**
-     * @param args the command line arguments
+     * Main class for initiating all the variables to run the code.
+     * 
      */
     public static void main(String[] args) {
         AI_assignment_2 ai_assignment;
         ai_assignment=new AI_assignment_2();
         Scanner scanner=new Scanner(System.in);
         
-        System.out.println("Enter number of variable (under 100)");
+        System.out.println("Enter number of variable (under 1000)");
         ai_assignment.numberOfVar=scanner.nextInt();
-        while (ai_assignment.numberOfVar>100){
-            System.out.println("Pleas enter number of variable (under 100)");
+        while (ai_assignment.numberOfVar>1000){
+            System.out.println("Pleas enter number of variable (under 1000)");
             ai_assignment.numberOfVar=scanner.nextInt();
         }
         
@@ -45,10 +46,10 @@ public class AI_assignment_2 {
             ai_assignment.p=scanner.nextFloat();
         }
         
-        System.out.println("Enter constant α (0<α<1)");
+        System.out.println("Enter constant alpha (0<alpha<1)");
         ai_assignment.alpha=scanner.nextFloat();
         while(ai_assignment.alpha>=1f||ai_assignment.alpha<=0f){
-            System.out.println("Please enter constant α (0<α<1)");
+            System.out.println("Please enter constant alpha (0<alpha<1)");
             ai_assignment.alpha=scanner.nextFloat();
         }
         
@@ -59,16 +60,22 @@ public class AI_assignment_2 {
             ai_assignment.r=scanner.nextFloat();
         }
         
-        System.out.println("inputed values numofvar:"+ai_assignment.numberOfVar+" p"+ai_assignment.p+" alpha"+ai_assignment.alpha+" r"+ai_assignment.r);
-        
-        ai_assignment.domainSize=(int) Math.pow(ai_assignment.numberOfVar,ai_assignment.alpha);
+        //couting domain size from alpha and number of variables
+        ai_assignment.domainSize=
+                (int) Math.pow(ai_assignment.numberOfVar,ai_assignment.alpha); /* N^alpha */ 
         System.out.println("Domain Size:"+ai_assignment.domainSize);
-        ai_assignment.noOfConstraint=  (int) Math.ceil(ai_assignment.r * ai_assignment.numberOfVar * Math.log(ai_assignment.numberOfVar));
+        
+        
+        //calculationg nubmer of constaints based on constant r and number of variable.
+        ai_assignment.noOfConstraint=  
+                (int) Math.ceil(ai_assignment.r * ai_assignment.numberOfVar * Math.log(ai_assignment.numberOfVar)); /* rn ln n*/
         System.out.println("Number of Constraint:"+ai_assignment.noOfConstraint);
-        ai_assignment.incompitableTable=(int) Math.ceil(ai_assignment.p* ai_assignment.domainSize*ai_assignment.domainSize);
+        
+        //calculating number of imcompitable tuples based on constraint tightness p and domain size of variable 
+        ai_assignment.incompitableTable=(int) Math.ceil(ai_assignment.p* ai_assignment.domainSize*ai_assignment.domainSize); /* pd^2 */
         System.out.println("Number of IncompitableTable size:"+ai_assignment.incompitableTable);
         
-        //generation of varable
+        //generation of variable
         System.out.print("Variables:");
         for(int i=0;i<ai_assignment.numberOfVar;i++){
             ai_assignment.variables.add(i);
@@ -84,7 +91,6 @@ public class AI_assignment_2 {
         
         //assigning domains to each variables
         for(int i=0;i<ai_assignment.variables.size();i++){
-            System.out.println("here");
              ai_assignment.varDomains.values.add(new ArrayList<Integer>(ai_assignment.domains));
         }
         
@@ -101,7 +107,7 @@ public class AI_assignment_2 {
         char choice=scanner.next().charAt(0);
         if(choice=='y'){
             //performing arc consistency 
-            boolean consistant = ai_assignment.performAC3();
+            boolean consistant = ai_assignment.performAC3(ai_assignment.constaintVariable,ai_assignment.varDomains);
             System.out.println("\nProblem is consistent "+consistant+" Using Arc consistency");
 
             for(int i=0;i<ai_assignment.varDomains.values.size();i++){
@@ -118,7 +124,8 @@ public class AI_assignment_2 {
         System.out.println("2. Forward Checking ");
         System.out.println("3. Full Look Ahead ");
         int choiceOfAlgo=scanner.nextInt();
-        
+        ai_assignment.startTime=System.currentTimeMillis();
+        System.out.println("startTime:"+ai_assignment.startTime);
        switch(choiceOfAlgo){
            case 1:
                ai_assignment.doBacktracking();
@@ -129,6 +136,10 @@ public class AI_assignment_2 {
            case 3:
                ai_assignment.doFullLookAhead();
                break;
+           case 123:
+               ai_assignment.doBacktracking();
+               ai_assignment.doForwardChecking();
+               ai_assignment.doFullLookAhead();
            default:
                break;
        }
@@ -141,16 +152,13 @@ public class AI_assignment_2 {
      * 
      * followed https://en.wikipedia.org/wiki/AC-3_algorithm site to get understanding of the algorithm
      */
-    private boolean performAC3() {
-        List<Constraints> arcs=new ArrayList<Constraints>();
-                
-        arcs=constaintVariable;
+    private boolean performAC3(ArrayList<Constraints> arcs,Domains tempVarDomain) {
         int i=0;
         while(i<arcs.size()){
             Constraints constraint=arcs.get(i);
-            System.out.println("constaint("+constraint.var1+","+constraint.var2+")");
-            if(doArcReduce(constraint)){
-                if(varDomains.values.get(constraint.var1).isEmpty())
+            //System.out.println("constaint("+constraint.var1+","+constraint.var2+")");
+            if(doArcReduce(constraint, tempVarDomain)){
+                if(tempVarDomain.values.get(constraint.var1).isEmpty())
                      return false;
             }
             i++;
@@ -166,20 +174,23 @@ public class AI_assignment_2 {
      * @return true-> if the removal of the value from the domain;
      *         false-> if there is no removal
      */
-    private boolean doArcReduce(Constraints constraint) {
+    private boolean doArcReduce(Constraints constraint, Domains tempVarDomain) {
         int count=0;
-        for(Integer i:varDomains.values.get(constraint.var1)){
+        for(Integer i:tempVarDomain.values.get(constraint.var1)){
            //do some great stuff here.
-           System.out.println("i: "+i);
+           //System.out.println("i: "+i);
            for(int j=0;j<constraint.values.size();j++){
-               System.out.println("j: "+j+"value: "+constraint.values.get(j).val1);
+               //System.out.println("j: "+j+"value: "+constraint.values.get(j).val1);
+               //checking for value of every possible of x in Dx we get y from Dy.
                if(i==constraint.values.get(j).val1)
                    count++;
-               System.out.println("count"+count);
+               //System.out.println("count"+count);
            }
-           if(count==domainSize){
+           //count is same means that all the possible of value of x is in incompitable tuples i.e. (X,Y): (0,0) (0,1) where domain of x is (0,1)
+           if(count==tempVarDomain.values.get(constraint.var1).size()){
                //System.out.println("count same remvoing:"+varDomains.values.get(constraint.var1).get(i)+" form "+varDomains.values.get(constraint.var1)+" "+constraint.var1);
-               varDomains.values.get(constraint.var1).remove(i);
+               //removing from the domain of X since we don't having any value from y.
+               tempVarDomain.values.get(constraint.var1).remove(i);
                return true;
            }
            count=0;
@@ -188,13 +199,19 @@ public class AI_assignment_2 {
         return false;
     }
     
-    
+    /**
+     * Backtracking algorithm for searching a solution which satisfy all the constraints
+     * 
+     * First we will start with assigning value to the first variable then checking if the constraints are violated or not
+     * if constraint violated backtrack.
+     * do same for N variable.
+     */
     private void doBacktracking() {
         HashMap<Integer,Integer> resultSet=new HashMap<Integer,Integer>();
         boolean constaintViolated=false;
         //System.out.println("size of vardomain"+varDomains.values.size());
         for(int variables1:variables){
-            System.out.println(" var 1:"+variables1);
+            //System.out.println(" var 1:"+variables1);
             for (int value1 = 0; value1 < varDomains.values.get(variables1).size(); value1++) {
                 for (int variable = variables1; variable < varDomains.values.size(); variable++) {
                     for (int value = value1; value < varDomains.values.get(variables1).size(); value++) {
@@ -210,15 +227,18 @@ public class AI_assignment_2 {
                 }
             }
         }
+        endTime=System.currentTimeMillis();
         if(resultSet.size()==numberOfVar){
-            System.out.println("Successfully found Solutions.");
+            System.out.println("Successfully found Solutions. Problem is Consistent");
         }else{
-            System.out.println("Not able to find whole solution.");
+            System.out.println("Not able to find whole solution. Problem is not consistent");
         }
         System.out.println("Solution:");
         for(Integer variables:resultSet.keySet()){
             System.out.println("variable X"+variables+": "+resultSet.get(variables));
         }
+        long timeElapsed = endTime-startTime;
+        System.out.println("Time taken to execute:"+timeElapsed+" milliseconds");
     }
     
     
@@ -239,11 +259,131 @@ public class AI_assignment_2 {
     }
 
     private void doForwardChecking() {
-        throw new UnsupportedOperationException("Not supported yet."); 
-    }
+        HashMap<Integer,Integer> resultMap=new HashMap<Integer,Integer>();
+        Domains tempVarDomain=varDomains;
+        boolean constaintViolated;
+        /*for(Integer variable:variables){
+            System.out.println("variable:"+variable);
+            for(Integer value:varDomains.values.get(variable)){
+                System.out.println("value:"+value);
+               if(constraintFound(variable,tempVarDomain,value)){
 
+               }else{
+                   resultMap.put(variable, value);
+                   break;
+               }
+            }
+        }*/
+        for(int variables1:variables){
+            //System.out.println(" var 1:"+variables1);
+            for (int value1 = 0; value1 < varDomains.values.get(variables1).size(); value1++) {
+                for (int variable = variables1+1; variable < varDomains.values.size(); variable++) {   
+                    //System.out.println("variable " + variable + " value " + value1);
+                    constaintViolated = constraintFound(variable, tempVarDomain, value1);
+                    //System.out.println("consistent:"+constaintViolated);
+                    if(constaintViolated){
+                        resultMap.put(variables1, value1);
+                        break;
+                    }           
+                }
+            }
+        }
+        endTime=System.currentTimeMillis();
+        if(resultMap.size()==numberOfVar){
+            System.out.println("Successfully found Solutions.Problem is consistent");
+        }else{
+            System.out.println("Not able to find whole solution.Problem is not consistent");
+        }
+        System.out.println("Solution:");
+        for(Integer variables:resultMap.keySet()){
+            System.out.println("variable X"+variables+": "+resultMap.get(variables));
+        }
+        long timeElapsed = endTime-startTime;
+        System.out.println("Time taken to execute:"+timeElapsed+" milliseconds");
+    }
+    private boolean constraintFound(Integer variable, Domains tempVarDomain, Integer value){
+        for (Constraints constraints : constaintVariable) {
+            //System.out.println("constaint var1:" + constraints.var1 + " var 2:" + constraints.var2);
+            if ((constraints.var1 == variable && constraints.var2 == variable + Integer.valueOf(1)) || (constraints.var2 == variable && constraints.var1 == variable + Integer.valueOf(1))) {
+                //System.out.println("Constraint present: for "+variable+" and "+variable+Integer.valueOf(1));
+                ArrayList<Constraints> tempConstraintses=new ArrayList<Constraints>();
+                tempConstraintses.add(constraints);
+                if (performAC3(tempConstraintses,tempVarDomain)) {
+                    //System.out.println("arc inconsistency for "+variable+" and "+variable+Integer.valueOf(1));
+                    return false;
+                    
+                }else{
+                    return true;
+                } 
+            }
+        }
+        return true;
+    }
     private void doFullLookAhead() {
-        throw new UnsupportedOperationException("Not supported yet."); 
+        HashMap<Integer,Integer> resultMap=new HashMap<Integer,Integer>();
+        Domains tempVarDomain=varDomains;
+        ArrayList<Constraints> constraintsList=new ArrayList<Constraints>();
+        boolean consistant=true;
+        
+        for(int variables1:variables){
+            //System.out.println(" var 1:"+variables1);
+            for (int value1 = 0; value1 < varDomains.values.get(variables1).size(); value1++) {
+                        //System.out.println("value puttin var:"+variables1+" val:"+value1);
+                        resultMap.put(variables1, value1);
+                        tempVarDomain.values.get(variables1).clear();
+                        //System.out.println("length:"+tempVarDomain.values.get(variables1).size());
+                        tempVarDomain.values.get(variables1).add(value1);
+                        //System.out.println("length:"+tempVarDomain.values.get(variables1).size());
+                for (int variable = variables1+1; variable < varDomains.values.size(); variable++) {   
+                //System.out.println("variable " + variable + " value " + value);
+                    constraintsList=findConstraintVariable(variables1+1);
+                    consistant=performAC3(constraintsList, tempVarDomain);
+                    //System.out.println("constitent:"+consistant);
+                    if(consistant){
+                        
+                    }else{
+                        //System.out.println("removing value from:"+variables1);
+                        resultMap.remove(variables1);
+                        //System.out.println("length:"+tempVarDomain.values.get(variables1).size());
+                        tempVarDomain.values.get(variables1).addAll(domains);
+                        //System.out.println("length:"+tempVarDomain.values.get(variables1).size());
+                        break;
+                        
+                    }         
+                }
+            }
+        }
+        endTime=System.currentTimeMillis();
+        if(resultMap.size()==numberOfVar){
+            System.out.println("Successfully found Solutions. Problem is consistent");
+        }else{
+            System.out.println("Not able to find whole solution. Problem is not consistent");
+        }
+        System.out.println("Solution:");
+        for(Integer variables:resultMap.keySet()){
+            System.out.println("variable X"+variables+": "+resultMap.get(variables));
+        }
+        
+        long timeElapsed = endTime-startTime;
+        System.out.println("Time taken to execute:"+timeElapsed+" milliseconds");
+    }
+    
+    private ArrayList<Constraints> findConstraintVariable(int variable) {
+        ArrayList<Constraints> tempConstraintses=new ArrayList<Constraints>();
+        for(int var=variable;var<numberOfVar;var++){
+        for (Constraints constraints : constaintVariable) {
+            //System.out.println("var:"+var+" constaint var1:" + constraints.var1 + " var 2:" + constraints.var2);
+            if ((constraints.var1 == var)) {
+                //System.out.println("Constraint present: for "+constraints.var1+" and "+constraints.var2);
+                tempConstraintses.add(constraints);
+            }else if(constraints.var2 == var){
+                //System.out.println("Constraint present: for "+constraints.var1+" and "+constraints.var2);
+                tempConstraintses.add(constraints);
+            }
+        }
+        
+        }
+        return tempConstraintses;
     }
     
     /**'
@@ -346,6 +486,8 @@ public class AI_assignment_2 {
         }
         return false;
     }
+
+    
 
     
 
